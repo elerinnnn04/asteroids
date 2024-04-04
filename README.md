@@ -1,3 +1,4 @@
+# Asteroidid
 
 Autor:
 Elerin
@@ -6,7 +7,7 @@ Projekti Kirjeldus:
 Tegin Asteroidide mängu JavaFX abil, kus mängija juhib kosmoselaeva, väldib asteroide ja kogub punkte. Mäng küsib kasutaja nime, et personaliseerida mängukogemust.
 
 Klasside Eesmärgid ja Meetodid:
--AsteroidideMäng: Käivitab mängu, loob stseeni.
+- AsteroidideMäng: Käivitab mängu, loob stseeni.
 - Laev: Juhib laeva liikumist ja suunda.
 - Asteroid: Genereerib ja liigutab asteroide.
 - Kuul: Tulistab ja liigutab kuule.
