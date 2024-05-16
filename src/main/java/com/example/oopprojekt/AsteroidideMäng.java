@@ -1,5 +1,6 @@
 package com.example.oopprojekt;
 
+import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -10,6 +11,7 @@ import java.util.stream.Collectors;
 import javafx.animation.AnimationTimer;
 import javafx.application.Application;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.Pane;
@@ -17,11 +19,20 @@ import javafx.scene.text.Text;
 import javafx.stage.Stage;
 
 public class AsteroidideMäng extends Application {
-
     public static int LAIUS = 300;
     public static int KÕRGUS = 200;
-
+    private static String KORGEIMAD_TULEMUSED_FAIL = "korgeimadtulemused.txt";
     private String kasutajaNimi;
+    private Pane paneel;
+    private List<Asteroid> asteroidid;
+    private List<Kuul> kuulid;
+    private Laev laev;
+    private Text tekst;
+    private Text mängijaNimiTekst;
+    private Text korgeimadTulemusedTekst;
+    private AtomicInteger punktid;
+    private Button prooviUuestiNupp;
+    private AnimationTimer timer;
 
     public static void main(String[] args) {
         launch(args);
@@ -36,26 +47,31 @@ public class AsteroidideMäng extends Application {
 
         dialoog.showAndWait().ifPresent(nimi -> kasutajaNimi = nimi);
 
-        Pane paneel = new Pane();
+        this.paneel = new Pane();
         paneel.setPrefSize(LAIUS, KÕRGUS);
 
-        Text tekst = new Text(10, 20, "Punktid: 0");
-        Text mängijaNimiTekst = new Text(LAIUS - 100, 20, "Mängija: " + kasutajaNimi);
-        AtomicInteger punktid = new AtomicInteger();
+        this.tekst = new Text(10, 20, "Punktid: 0");
+        this.mängijaNimiTekst = new Text(LAIUS - 100, 20, "Mängija: " + kasutajaNimi);
+        this.korgeimadTulemusedTekst = new Text(10, 40, "");
+        this.punktid = new AtomicInteger();
 
-
-        Laev laev = new Laev(LAIUS / 2, KÕRGUS / 2);
-        List<Asteroid> asteroidid = new ArrayList<>();
+        this.laev = new Laev(LAIUS / 2, KÕRGUS / 2);
+        this.asteroidid = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
             Random rnd = new Random();
             Asteroid asteroid = new Asteroid(rnd.nextInt(LAIUS / 3), rnd.nextInt(KÕRGUS));
             asteroidid.add(asteroid);
         }
-        List<Kuul> kuulid = new ArrayList<>();
+        this.kuulid = new ArrayList<>();
 
-        paneel.getChildren().addAll(tekst, mängijaNimiTekst);
+        paneel.getChildren().addAll(tekst, mängijaNimiTekst, korgeimadTulemusedTekst);
         paneel.getChildren().add(laev.getKuju());
         asteroidid.forEach(asteroid -> paneel.getChildren().add(asteroid.getKuju()));
+
+        prooviUuestiNupp = new Button("Proovi Uuesti");
+        prooviUuestiNupp.setVisible(false);
+        prooviUuestiNupp.setOnAction(e -> alustaUuestiMängu());
+        paneel.getChildren().add(prooviUuestiNupp);
 
         Scene stseen = new Scene(paneel);
 
@@ -69,7 +85,17 @@ public class AsteroidideMäng extends Application {
             vajutatudNupud.put(event.getCode(), Boolean.FALSE);
         });
 
-        new AnimationTimer() {
+        lava.widthProperty().addListener((obs, vana, uus) -> {
+            LAIUS = uus.intValue();
+            kohandaElemendid();
+        });
+
+        lava.heightProperty().addListener((obs, vana, uus) -> {
+            KÕRGUS = uus.intValue();
+            kohandaElemendid();
+        });
+
+        this.timer = new AnimationTimer() {
             @Override
             public void handle(long praeguHetk) {
                 if (vajutatudNupud.getOrDefault(KeyCode.LEFT, false)) {
@@ -102,7 +128,7 @@ public class AsteroidideMäng extends Application {
 
                 asteroidid.forEach(asteroid -> {
                     if (laev.põrkub(asteroid)) {
-                        stop();
+                        gameOver();
                     }
                 });
 
@@ -142,10 +168,75 @@ public class AsteroidideMäng extends Application {
                 }
 
             }
-        }.start();
+        };
+
+        timer.start();
 
         lava.setTitle("Asteroidid!");
         lava.setScene(stseen);
         lava.show();
+    }
+
+    private void alustaUuestiMängu() {
+        paneel.getChildren().clear();
+        paneel.getChildren().addAll(tekst, mängijaNimiTekst, korgeimadTulemusedTekst, prooviUuestiNupp);
+        tekst.setText("Punktid: 0");
+        punktid.set(0);
+
+        laev = new Laev(LAIUS / 2, KÕRGUS / 2);
+        asteroidid = new ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            Random rnd = new Random();
+            Asteroid asteroid = new Asteroid(rnd.nextInt(LAIUS / 3), rnd.nextInt(KÕRGUS));
+            asteroidid.add(asteroid);
+        }
+        kuulid = new ArrayList<>();
+
+        paneel.getChildren().add(laev.getKuju());
+        asteroidid.forEach(asteroid -> paneel.getChildren().add(asteroid.getKuju()));
+
+        prooviUuestiNupp.setVisible(false);
+        korgeimadTulemusedTekst.setText("");
+
+        timer.start();
+    }
+
+    private void gameOver() {
+        timer.stop();
+        prooviUuestiNupp.setVisible(true);
+        prooviUuestiNupp.setLayoutX((LAIUS - prooviUuestiNupp.getWidth()) / 2);
+        prooviUuestiNupp.setLayoutY((KÕRGUS - prooviUuestiNupp.getHeight()) / 2);
+
+        salvestaPunktid();
+
+        kuvaKorgeimadTulemused();
+    }
+
+    private void kohandaElemendid() {
+        paneel.setPrefSize(LAIUS, KÕRGUS);
+        mängijaNimiTekst.setX(LAIUS - 100);
+        prooviUuestiNupp.setLayoutX((LAIUS - prooviUuestiNupp.getWidth()) / 2);
+        prooviUuestiNupp.setLayoutY((KÕRGUS - prooviUuestiNupp.getHeight()) / 2);
+    }
+
+    private void salvestaPunktid() {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(KORGEIMAD_TULEMUSED_FAIL, true))) {
+            writer.write(kasutajaNimi + ": " + punktid.get() + "\n");
+        } catch (IOException e) {
+            System.out.println("Viga punktide salvestamisel: " + e.getMessage());
+        }
+    }
+
+    private void kuvaKorgeimadTulemused() {
+        StringBuilder korgeimadTulemused = new StringBuilder("Kõrgeimad tulemused:\n");
+        try (BufferedReader reader = new BufferedReader(new FileReader(KORGEIMAD_TULEMUSED_FAIL))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                korgeimadTulemused.append(line).append("\n");
+            }
+        } catch (IOException e) {
+            System.out.println("Viga punktide lugemisel: " + e.getMessage());
+        }
+        korgeimadTulemusedTekst.setText(korgeimadTulemused.toString());
     }
 }
