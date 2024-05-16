@@ -17,7 +17,7 @@ Projekti Tegemise Protsess:
 Algusest lõpuni individuaalprojekt. Protsess hõlmas idee genereerimist, JavaFX õppimist, loogika implementeerimist ja testimist.
 
 Panus ja Ajakulu:
-Kogu projekt oli minu tehtud. Kulutasin umbes 20 tundi.
+Kogu projekt oli minu tehtud. Kulutasin umbes 25 tundi.
 
 Tegemise Mured:
 Peamised väljakutsed olid JavaFX teegi õppimine ja mänguloogika sujuvaks muutmine.
